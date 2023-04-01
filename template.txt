@@ -1,0 +1,817 @@
+Team – read_it_carefully
+Graphic Era University, Dehradun
+Sparse Table
+const int MAX_N = 1000005;
+const int LOG = 21;
+int a[MAX_N];
+int m[MAX_N][LOG];
+int bin_log[MAX_N];
+int query(int L, int R) { // O(1) (zero base index)
+ int length = R - L + 1;
+ int k = bin_log[length];
+ return gcd(m[L][k],m[R-(1<<k)+1][k]); // operation change
+}
+int main(){
+ int n; cin>>n;
+ bin_log[1] = 0;
+ for(int i = 2; i <= n; i++) bin_log[i] = bin_log[i/2]+1;
+
+ for(int i = 0; i < n; i++) {
+ cin >> a[i];
+ m[i][0] = a[i];
+ }
+ // preprocessing, O(N*log(N))
+ for(int k = 1; k < LOG; k++) {
+ for(int i = 0; i + (1 << k) - 1 < n; i++) {
+ m[i][k] = gcd(m[i][k-1],m[i+(1<<(k-1))][k-1]); // operation change
+ }
+ }
+}
+Oset
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds; //*find_by_order(k):
+template<class T> // order_of_key(k)
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template<class T> // use pair
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag,
+tree_order_statistics_node_update>;
+Direction
+signed dx8[] = {0, 0, 1, 1, 1, -1, -1, -1};
+signed dy8[] = {1, -1, 1, -1, 0, 1, -1, 0};
+signed dx4[] = {0,0,-1,1};
+signed dy4[] = {1,-1,0,0};
+// int dxy[8][2] = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}}; // CLOCKWISE
+SPIRAL
+struct manacher {
+ // everything zero indexed
+ vector<int>val;
+ string t;
+ void precompute(string& s) {
+ t = "";
+ for (auto& x : s) {
+ t += string("#") + x;
+ } t += "#";
+ run_mancher();
+ }
+ void run_mancher() {
+ int n = t.size();
+ val.clear();
+ val.assign(n, 1);
+ int l = -1 , r = 1;
+ // left and right are boundaries that not included
+ for (int i = 1; i < n; i++) {
+ // getting min possible pallindrome from previous nearest and largest pallindrome
+ // largest means largest on right side
+ val[i] = max( 1 , min(r - i , val[ l + r - i]));
+ // expansion of current element
+ while (i - val[i] >= 0 && i + val[i] < n && t[i + val[i]] == t[i - val[i]]) val[i]++;
+ // updating r is current pallindrome is more on right side
+ if (r < i + val[i]) {
+ r = i + val[i];
+ l = i - val[i];
+ }
+ }
+ for (auto& x : t) cout << x << " "; cout << endl;
+ for (auto& x : val) cout << x << " "; cout << endl;
+ }
+ int getLargest(int center , int odd) {
+ // odd = 1 , we need largest odd pallidrome
+ // center is zero indexed
+ int idx = 2 * center + odd;
+ return val[idx] - 1;
+ }
+ int checkPallindrome(int l , int r) {
+ int odd = (r - l + 1) & 1;
+ int center = (r + l) / 2 + !odd;
+ return getLargest(center, odd) >= (r - l + 1);
+ }
+};
+struct DSU {
+ vector<int> par, rnk, sz;
+ int c;
+ DSU(int n) : par(n + 1), rnk(n + 1, 0), sz(n + 1, 1), c(n) { // Constructor.
+ for (int i = 1; i <= n; ++i) par[i] = i;
+ }
+ int find(int i) {
+ return (par[i] == i ? i : (par[i] = find(par[i]))); // Path Compression along with find()
+ }
+ bool same(int i, int j) {
+ return find(i) == find(j); // is Connected?
+ }
+ int get_size(int i) {
+ return sz[find(i)];
+ }
+ int count() {
+ return c; //connected components.
+ }
+ int merge(int i, int j) { // Union funtion.
+ if ((i = find(i)) == (j = find(j))) return -1;
+ else --c;
+ if (rnk[i] > rnk[j]) swap(i, j);
+ par[i] = j;
+ sz[j] += sz[i];
+ if (rnk[i] == rnk[j]) rnk[j]++;
+ return j;
+ }
+};
+template <typename T>
+struct Q {
+ T a, b;
+ Q(T p, T q = 1) {
+ T g = gcd(p, q);
+ a = p / g;
+ b = q / g;
+ if (b < 0) a = -a, b = -b;
+ }
+ T gcd(T x, T y) const { return __gcd(x, y); }
+ Q operator+(const Q& o) const {
+ return {a * o.b + o.a * b, b * o.b};
+ }
+ Q operator-(const Q& o) const {
+ return *this + Q(-o.a, o.b);
+ }
+ Q operator*(const Q& o) const { return {a * o.a, b * o.b}; }
+ Q operator/(const Q& o) const { return *this * Q(o.b, o.a); }
+ Q recip() const { return {b, a}; }
+ int signum() const { return (a > 0) - (a < 0); }
+ bool operator<(const Q& o) const {
+ return a * o.b < o.a * b;
+ }
+ friend ostream& operator<<(ostream& cout, const Q& o) {
+ return cout << o.a << "/" << o.b;
+ }
+};
+const int FAC_N = 1e6+1;
+int factorialNumInverse[FAC_N + 1], naturalNumInverse[FAC_N + 1], fact[FAC_N + 1];
+void InverseofNumber(int p){
+ naturalNumInverse[0] = naturalNumInverse[1] = 1;
+ for (int i = 2; i <= FAC_N; i++) naturalNumInverse[i] = naturalNumInverse[p % i] * (p - p / i)
+% p;
+}
+void InverseofFactorial(int p) {
+ factorialNumInverse[0] = factorialNumInverse[1] = 1;
+ for (int i = 2; i <= FAC_N; i++) factorialNumInverse[i] = (naturalNumInverse[i] *
+factorialNumInverse[i - 1]) % p;
+}
+void factorial(int p) {
+ fact[0] = 1;
+ for (int i = 1; i <= FAC_N; i++) fact[i] = (fact[i - 1] * i) % p;
+}
+int nCr(int N, int R, int p) {
+ int ans = ((fact[N] * factorialNumInverse[R]) % p * factorialNumInverse[N - R]) % p;
+ return ans;
+}
+/*
+int m = MOD;
+InverseofNumber(m);
+InverseofFactorial(m);
+factorial(m);
+*/
+struct custom_hash {
+ static uint64_t splitmix64(uint64_t x) {
+ // http://xorshift.di.unimi.it/splitmix64.c
+ x += 0x9e3779b97f4a7c15;
+ x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+ x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+ return x ^ (x >> 31);
+}
+size_t operator()(uint64_t x) const {
+ static const uint64_t FIXED_RANDOM =
+chrono::steady_clock::now().time_since_epoch().count();
+ return splitmix64(x + FIXED_RANDOM);
+}
+};
+namespace number_theory {
+ll gcd(ll x, ll y) {
+if (x == 0) return y;
+ if (y == 0) return x;
+return gcd(y, x % y);
+}
+bool isprime(ll n) {
+if (n <= 1) return false;
+if (n <= 3) return true;
+if (n % 2 == 0 || n % 3 == 0) return false;
+for (ll i = 5; i * i <= n; i += 6)
+if (n % i == 0 || n % (i+2) == 0)
+return false;
+return true;
+}
+ll prime[15000105];
+void sieve(int n) {
+ for (ll i = 0; i <= n; i++) prime[i] = 1;
+ for (ll p = 2; p * p <= n; p++) {
+if (prime[p] == true) {
+ for (ll i = p * p; i <= n; i += p)
+prime[i] = false;
+}
+ }
+ prime[1] = prime[0] = 0;
+}
+vector<ll> primelist;
+bool __primes_generated__ = 0;
+void genprimes(int n) {
+ __primes_generated__ = 1;
+ sieve(n + 1);
+ for (ll i = 2; i <= n; i++) if (prime[i]) primelist.push_back(i);
+}
+vector<ll> factors(ll n) {
+ if (!__primes_generated__) {
+cerr << "Call genprimes you dope" << endl;
+exit(1);
+ }
+ vector<ll> facs;
+ for (ll i = 0; primelist[i] * primelist[i] <= n && i < primelist.size(); i++) {
+if (n % primelist[i] == 0) {
+while (n % primelist[i] == 0) {
+n /= primelist[i];
+facs.push_back(primelist[i]);
+}
+}
+ }
+ if (n > 1) {
+facs.push_back(n);
+ }
+ sort(facs.begin(), facs.end());
+ return facs;
+}
+vector<ll> getdivs(ll n) {
+ vector<ll> divs;
+ for (ll i = 1; i * i <= n; i++) {
+ if (n % i == 0) {
+ divs.push_back(i);
+ divs.push_back(n / i);
+ }
+ }
+ getunique(divs);
+ return divs;
+ }
+}
+using namespace number_theory;
+int area(int bl_x, int bl_y, int tr_x, int tr_y) {
+ int length = tr_y - bl_y;
+ int width = tr_x - bl_x;
+ return length * width;
+}
+bool intersect(vector<int> s1, vector<int> s2) {
+ int bl_a_x = s1[0], bl_a_y = s1[1], tr_a_x = s1[2], tr_a_y = s1[3];
+ int bl_b_x = s2[0], bl_b_y = s2[1], tr_b_x = s2[2], tr_b_y = s2[3];
+ // no overlap
+ if (bl_a_x >= tr_b_x or tr_a_x <= bl_b_x or bl_a_y >= tr_b_y or tr_a_y <= bl_b_y) return
+false;
+ else return true;
+}
+int inter_area(vector<int> s1, vector<int> s2) {
+ if(!intersect(s1, s2)) return 0;
+ int bl_a_x = s1[0], bl_a_y = s1[1], tr_a_x = s1[2], tr_a_y = s1[3];
+ int bl_b_x = s2[0], bl_b_y = s2[1], tr_b_x = s2[2], tr_b_y = s2[3];
+ return ((min(tr_a_x, tr_b_x) - max(bl_a_x, bl_b_x)) * (min(tr_a_y, tr_b_y) - max(bl_a_y,
+bl_b_y))
+ );
+}
+void phi_1_to_n(int n) {
+ vector<int> phi(n + 1);
+ for (int i = 0; i <= n; i++)
+ phi[i] = i;
+ for (int i = 2; i <= n; i++) {
+ if (phi[i] == i) {
+ for (int j = i; j <= n; j += i)
+ phi[j] -= phi[j] / i;
+ }
+ }
+}
+mt19937 rnd(chrono::high_resolution_clock::now().time_since_epoch().count());
+int getRandomNumber(int l, int r){
+ uniform_int_distribution<int> dist(l, r);
+ return dist(rnd);
+}
+namespace Hull{
+ int rotation(const vector<int> &p, const vector<int> &q, const vector<int> &r){
+ int x1 = q[0] - p[0];
+ int y1 = q[1] - p[1];
+ int x2 = r[0] - q[0];
+ int y2 = r[1] - q[1];
+ int val = x1*y2 - y1*x2;
+ return val;
+ }
+ void ConvexHull(vector<vector<int> > &arr){
+ int n = arr.size();
+ int l = 0;
+ set<vector<int> > st;
+ for(int i = 1; i<n; i++){
+ if((arr[i][0] < arr[l][0]) or (arr[i][0] == arr[l][0] and arr[i][1] < arr[l][1])) l = i;
+ }
+ int p = l;
+ do{
+ int q = (p+1)%n;
+ for(int r = 0; r<n; r++){
+ int v = rotation(arr[p], arr[q], arr[r]);
+ if(v > 0) q = r;
+ }
+ for(int r = 0; r<n; r++){
+ int v = rotation(arr[p], arr[q], arr[r]);
+ if(v == 0) st.insert(arr[r]);
+ }
+ p = q;
+ }while(p != l);
+ vector<vector<int> > hull;
+ for(auto &v: st) hull.emplace_back(v);
+ for(auto &v: hull) cout<<v[0]<<" "<<v[1]<<"\n";
+ return;
+ }
+};
+using namespace Hull;
+LCA
+int n, l;
+vector<vector<int>> adj;
+int timer;
+vector<int> tin, tout;
+vector<vector<int>> up;
+void dfs(int v, int p)
+{
+ tin[v] = ++timer;
+ up[v][0] = p;
+ for (int i = 1; i <= l; ++i)
+ up[v][i] = up[up[v][i-1]][i-1];
+ for (int u : adj[v]) {
+ if (u != p)
+ dfs(u, v);
+ }
+ tout[v] = ++timer;
+}
+bool is_ancestor(int u, int v)
+{
+ return tin[u] <= tin[v] && tout[u] >= tout[v];
+}
+int lca(int u, int v)
+{
+ if (is_ancestor(u, v))
+ return u;
+ if (is_ancestor(v, u))
+ return v;
+ for (int i = l; i >= 0; --i) {
+ if (!is_ancestor(up[u][i], v))
+ u = up[u][i];
+ }
+ return up[u][0];
+}
+void preprocess(int root) {
+ tin.resize(n);
+ tout.resize(n);
+ timer = 0;
+ l = ceil(log2(n));
+ up.assign(n, vector<int>(l + 1));
+ dfs(root, root);
+}
+const int MAX_PR = 5'000'000;
+bitset<MAX_PR> isprime;
+vector<int> primeSieve(int lim) {
+ isprime.set();
+ isprime[0] = isprime[1] = 0;
+ for (int i = 4; i < lim; i += 2) isprime[i] = 0;
+ for (int i = 3; i * i < lim; i += 2)
+ if (isprime[i])
+ for (int j = i * i; j < lim; j += i * 2) isprime[j] = 0;
+ vector<int> pr;
+ for (int i = 2; i < lim; i++)
+ if (isprime[i]) pr.push_back(i);
+ return pr;
+}
+vector<int> zValues(string& s) {
+ int n = ( int )s.length();
+ vector<int> z(n);
+ for (int i = 1, l = 0, r = 0; i < n; ++i) {
+ if (i <= r) z[i] = min(r - i + 1, z[i - l]);
+ while (i + z[i] < n && s[z[i]] == s[i + z[i]]) ++z[i];
+ if (i + z[i] - 1 > r) l = i, r = i + z[i] - 1;
+ }
+ return z;
+}
+Segment Tree
+#define ll long long
+template<class T, class U>
+// T -> node, U->update.
+struct Lsegtree{
+ vector<T>st;
+ vector<U>lazy;
+ ll n;
+ T identity_element;
+ U identity_update;
+ /*
+ Definition of identity_element: the element I such that combine(x,I) = x
+ for all x
+Definition of identity_update: the element I such that apply(x,I) = x
+ for all x
+ */
+ Lsegtree(ll n, T identity_element, U identity_update){
+ this->n = n;
+ this->identity_element = identity_element;
+ this->identity_update = identity_update;
+ st.assign(4*n,identity_element);
+ lazy.assign(4*n, identity_update);
+ }
+ T combine(T l, T r){
+ // change this function as required.
+ T ans = (l + r);
+ return ans;
+ }
+ void buildUtil(ll v, ll tl, ll tr, vector<T>&a){
+ if(tl == tr){
+ st[v] = a[tl];
+ return;
+ }
+ ll tm = (tl + tr)>>1;
+ buildUtil(2*v + 1, tl, tm,a);
+ buildUtil(2*v + 2,tm+1,tr,a);
+ st[v] = combine(st[2*v + 1], st[2*v + 2]);
+ }
+ // change the following 2 functions, and you're more or less done.
+ T apply(T curr, U upd, ll tl, ll tr)
+ {
+ T ans = (tr-tl+1)*upd;
+ // increment range by upd:
+ // T ans = curr + (tr - tl + 1)*upd
+ return ans;
+ }
+ U combineUpdate(U old_upd, U new_upd, ll tl, ll tr)
+ {
+ U ans = old_upd;
+ ans=new_upd;
+ return ans;
+ }
+ void push_down(ll v, ll tl, ll tr){
+ //for the below line to work, make sure the "==" operator is defined for U.
+ if(lazy[v] == identity_update)return;
+ st[v] = apply(st[v], lazy[v], tl, tr);
+ if(2*v + 1 <= 4*n){
+ ll tm = (tl + tr)>>1;
+ lazy[2*v + 1] = combineUpdate(lazy[2*v+1], lazy[v], tl, tm);
+ lazy[2*v + 2] = combineUpdate(lazy[2*v+2], lazy[v], tm+1,tr);
+ }
+ lazy[v] = identity_update;
+ }
+ T queryUtil(ll v, ll tl, ll tr, ll l, ll r){
+ push_down(v,tl,tr);
+ if(l > r)return identity_element;
+ if(tr < l or tl > r){
+ return identity_element;
+ }
+ if(l <= tl and r >= tr){
+ return st[v];
+ }
+ ll tm = (tl + tr)>>1;
+ return combine(queryUtil(2*v+1,tl,tm,l,r), queryUtil(2*v+2,tm+1,tr,l,r));
+ }
+ void updateUtil(ll v, ll tl, ll tr, ll l, ll r, U upd){
+ push_down(v,tl,tr);
+ if(tr < l or tl > r)return;
+ if(tl >=l and tr <=r){
+ lazy[v] = combineUpdate(lazy[v],upd,tl,tr);
+ push_down(v,tl,tr);
+ }
+ else{
+ ll tm = (tl + tr)>>1;
+ updateUtil(2*v+1,tl,tm,l,r,upd);
+ updateUtil(2*v+2,tm+1,tr,l,r,upd);
+ st[v] = combine(st[2*v + 1], st[2*v+2]);
+ }
+ }
+ void build(vector<T>a){
+ assert( (ll)a.size() == n);
+ buildUtil(0,0,n-1,a);
+ }
+ T query(ll l, ll r){
+ return queryUtil(0,0,n-1,l,r);
+ }
+ void update(ll l,ll r, U upd){
+ updateUtil(0,0,n-1,l,r,upd);
+ }
+};
+void Floyd_Warshall(int n,vector<vector<int>> &d){
+ // define INF
+ for (int k = 0; k < n; ++k) {
+ for (int i = 0; i < n; ++i) {
+ for (int j = 0; j < n; ++j) {
+ if (d[i][k] < INF && d[k][j] < INF)
+ d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+ }
+ }
+ }
+}
+Eulor path //edge once
+set<int> graph[100005];
+void print_path(int cur,int n){
+ vector<int> path;
+ stack<int> ck;
+ while(ck.size()>0 || graph[cur].size()>0 ){
+ if(graph[cur].size()==0){
+ path.pb(cur);
+ cur=ck.top();
+ ck.pop();
+ }else{
+ auto it=graph[cur].begin();
+ int first = *it;
+ ck.push(cur);
+ graph[cur].erase(it);
+ graph[first].erase(cur);
+ cur = first;
+}
+ }
+for(int i=1;i<=n;i++){
+ if(graph[i].size()>1){
+ cout<<"IMPOSSIBLE";
+ return;
+ }
+}
+if(path.size()==0){
+ cout<<"IMPOSSIBLE";
+ return;
+ }
+ for(int i:path) cout<<i<<" ";
+ cout<<1;
+}
+void solve(){
+ int n,m;
+ cin>>n>>m;
+int a,b;
+for(int i=0;i<m;i++){
+ cin>>a>>b; // one base
+ graph[a].insert(b);
+ graph[b].insert(a);
+}
+for(int i=1;i<=n;i++){
+ if(isodd(graph[i].size())){
+ cout<<"IMPOSSIBLE";
+ return;
+ }
+}
+print_path(1,n);
+return;}
+void bellman_with_path(int v,int n){ // v = source , n = number of vertices
+ vector<int> d (n, INF); // define INF
+ d[v] = 0;
+ vector<int> p (n, -1);
+ for (;;)
+ {
+ bool any = false;
+ for (int j = 0; j < m; ++j)
+ if (d[e[j].a] < INF)
+ if (d[e[j].b] > d[e[j].a] + e[j].cost)
+ {
+ d[e[j].b] = d[e[j].a] + e[j].cost;
+ p[e[j].b] = e[j].a;
+ any = true;
+ }
+ if (!any) break;
+ }
+ if (d[t] == INF)
+ cout << "No path from " << v << " to " << t << ".";
+ else
+ {
+ vector<int> path;
+ for (int cur = t; cur != -1; cur = p[cur])
+ path.push_back (cur);
+ reverse (path.begin(), path.end());
+ cout << "Path from " << v << " to " << t << ": ";
+ for (size_t i=0; i<path.size(); ++i)
+ cout << path[i] << ' ';
+ }
+}
+Bridge + articulation
+int n; // number of nodes
+vector<vector<int>> adj; // adjacency list of graph
+vector<bool> visited;
+vector<int> tin, low;
+int timer;
+void dfs(int v, int p = -1) { // do reset before using
+ visited[v] = true;
+ tin[v] = low[v] = timer++;
+ for (int to : adj[v]) {
+ if (to == p) continue;
+ if (visited[to]) {
+ low[v] = min(low[v], tin[to]);
+ } else {
+ dfs(to, v);
+ low[v] = min(low[v], low[to]);
+ if (low[to] > tin[v])
+ IS_BRIDGE(v, to);
+ }
+ }
+}
+void dfs(int v, int p = -1) { // do reset
+ visited[v] = true;
+ tin[v] = low[v] = timer++;
+ int children=0;
+ for (int to : adj[v]) {
+ if (to == p) continue;
+ if (visited[to]) {
+ low[v] = min(low[v], tin[to]);
+ } else {
+ dfs(to, v);
+ low[v] = min(low[v], low[to]);
+ if (low[to] >= tin[v] && p!=-1)
+ IS_CUTPOINT(v);
+ ++children;
+ }
+ }
+ if(p == -1 && children > 1)
+ IS_CUTPOINT(v);
+}
+void reset() {
+ timer = 0;
+ visited.assign(n, false);
+ tin.assign(n, -1);
+ low.assign(n, -1);
+ for (int i = 0; i < n; ++i) {
+ if (!visited[i])
+ dfs(i);
+ }
+}
+STRONGLY CONNECTED COMPONENT
+vector<vector<int>> adj, adj_rev;
+vector<bool> used;
+vector<int> order, component;
+void dfs1(int v) {
+ used[v] = true;
+ for (auto u : adj[v])
+ if (!used[u])
+ dfs1(u);
+ order.push_back(v);
+}
+void dfs2(int v) {
+ used[v] = true;
+ component.push_back(v);
+ for (auto u : adj_rev[v])
+ if (!used[u])
+ dfs2(u);
+}
+int main() {
+ int n;
+ // ... read n ...
+ for (;;) {
+ int a, b;
+ // ... read next directed edge (a,b) ...
+ adj[a].push_back(b);
+ adj_rev[b].push_back(a);
+ }
+ used.assign(n, false);
+ for (int i = 0; i < n; i++)
+ if (!used[i])
+ dfs1(i);
+ used.assign(n, false);
+ reverse(order.begin(), order.end());
+ for (auto v : order)
+ if (!used[v]) {
+ dfs2 (v);
+ // ... processing next component ...
+ component.clear();
+ }
+}
+class HashedString {
+ private:
+// change M and B if you want
+static const long long M = 1e9 + 9;
+static const long long B = 9973;
+// pow[i] contains B^i % M
+static vector<long long> pow;
+// p_hash[i] is the hash of the first i characters of the given string
+vector<long long> p_hash;
+ public:
+HashedString(const string &s) : p_hash(s.size() + 1) {
+while (pow.size() < s.size()) { pow.push_back((pow.back() * B) % M); }
+p_hash[0] = 0;
+for (int i = 0; i < s.size(); i++) {
+p_hash[i + 1] = ((p_hash[i] * B) % M + s[i]) % M;
+}
+}
+long long getHash(int start, int end) {
+long long raw_val =
+ (p_hash[end + 1] - (p_hash[start] * pow[end - start + 1]));
+return (raw_val % M + M) % M;
+}
+};
+vector<long long> HashedString::pow = {1};
+int extgcd(int a, int b, int& x, int& y) {
+ if (b == 0) {
+ x = 1;
+ y = 0;
+ return a;
+ }
+ int x1, y1;
+ int d = gcd(b, a % b, x1, y1);
+ x = y1;
+ y = x1 - y1 * (a / b);
+ return d;
+}
+struct Point
+{
+ int x;
+ int y;
+};
+// point q lies on line segment 'pr'
+bool onSegment(Point p, Point q, Point r){
+ if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) &&
+ q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y))
+ return true;
+ return false;
+}
+
+// To find orientation of ordered triplet (p, q, r).
+// The function returns following values
+// 0 --> p, q and r are collinear
+// 1 --> Clockwise
+// 2 --> Counterclockwise
+int orientation(Point p, Point q, Point r)
+{
+ int val = (q.y - p.y) * (r.x - q.x) -
+ (q.x - p.x) * (r.y - q.y);
+
+ if (val == 0) return 0; // collinear
+
+ return (val > 0)? 1: 2; // clock or counterclock wise
+}
+
+// The main function that returns true if line segment 'p1q1' and 'p2q2' intersect.
+bool doIntersect(Point p1, Point q1, Point p2, Point q2)
+{
+ int o1 = orientation(p1, q1, p2);
+ int o2 = orientation(p1, q1, q2);
+ int o3 = orientation(p2, q2, p1);
+ int o4 = orientation(p2, q2, q1);
+
+if (o1 != o2 && o3 != o4)
+ return true;
+
+ // p1, q1 and p2 are collinear and p2 lies on segment p1q1
+ if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+
+ // p1, q1 and q2 are collinear and q2 lies on segment p1q1
+ if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+
+ // p2, q2 and p1 are collinear and p1 lies on segment p2q2
+ if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+
+ // p2, q2 and q1 are collinear and q1 lies on segment p2q2
+ if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+ return false; // Doesn't fall in any of the above cases
+}
+unsigned long int binomialCoeff(unsigned int n,unsigned int k)
+{
+ unsigned long int res = 1;
+ // Since C(n, k) = C(n, n-k)
+ if (k > n - k)
+ k = n - k;
+ // Calculate value of [n*(n-1)*---*(n-k+1)] /
+ // [k*(k-1)*---*1]
+ for (int i = 0; i < k; ++i) {
+ res *= (n - i);
+ res /= (i + 1);
+ }
+ return res;
+}
+// A Binomial coefficient based function to find nth catalan
+// number in O(n) time
+unsigned long int catalan(unsigned int n)
+{
+ // Calculate value of 2nCn
+ unsigned long int c = binomialCoeff(2 * n, n);
+ // return 2nCn/(n+1)
+ return c / (n + 1);
+}
+struct matrix {
+ long long mat[2][2];
+ matrix friend operator *(const matrix &a, const matrix &b){
+ matrix c;
+ for (int i = 0; i < 2; i++) {
+ for (int j = 0; j < 2; j++) {
+ c.mat[i][j] = 0;
+ for (int k = 0; k < 2; k++) {
+ c.mat[i][j] += a.mat[i][k] * b.mat[k][j];
+ }
+ }
+ }
+ return c;
+ }
+};
+matrix matpow(matrix base, long long n) {
+ matrix ans{ {
+ {1, 0},
+ {0, 1}
+ } };
+ while (n) {
+ if(n&1)
+ ans = ans*base;
+ base = base*base;
+ n >>= 1;
+ }
+ return ans;
+}
+long long fib(int n) {
+ matrix base{ {
+ {1, 1},
+ {1, 0}
+ } };
+ return matpow(base, n).mat[0][1];
+}
+// EULER TOUR
